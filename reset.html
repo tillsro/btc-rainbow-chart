@@ -5,34 +5,44 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Reset BTC Rainbow Chart Cache</title>
 <style>
-body{margin:0;background:#070b12;color:#e5edf6;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;display:grid;place-items:center;min-height:100vh;padding:24px}main{max-width:520px;background:#0d111b;border:1px solid #263241;border-radius:16px;padding:22px;box-shadow:0 20px 70px rgba(0,0,0,.45)}h1{margin:0 0 8px;font-size:22px}p{color:#9aa7b7;line-height:1.5}button,a{display:inline-block;border:1px solid #33536c;background:#132234;color:#eaf6ff;border-radius:12px;padding:10px 13px;font-weight:700;text-decoration:none;margin-top:8px}
+body{margin:0;background:#070b12;color:#e5edf6;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;display:grid;place-items:center;min-height:100vh;padding:24px}main{max-width:560px;background:#0d111b;border:1px solid #263241;border-radius:16px;padding:22px;box-shadow:0 20px 70px rgba(0,0,0,.45)}h1{margin:0 0 8px;font-size:22px}p{color:#9aa7b7;line-height:1.5}.row{display:flex;gap:10px;flex-wrap:wrap}a,button{display:inline-block;border:1px solid #33536c;background:#132234;color:#eaf6ff;border-radius:12px;padding:10px 13px;font-weight:700;text-decoration:none;margin-top:8px}code{background:#090d15;border:1px solid #263241;border-radius:6px;padding:2px 5px;color:#d8e5f3}
 </style>
 </head>
 <body>
 <main>
-<h1>Resetting app cache</h1>
+<h1>Reset BTC Rainbow Chart Cache</h1>
 <p id="status">Clearing old service worker and cached files...</p>
-<a id="link" href="./?v=granularity-v5" style="display:none">Open updated chart</a>
+<p>Latest expected version: <code>v13</code>. The updated chart should include fine Rainbow curve options like <code>1.82</code>, <code>1.84</code>, <code>1.86</code>, <code>1.88</code>, and <code>1.90</code>.</p>
+<div class="row">
+<a id="link" href="./?v=v13&ts=manual">Open latest chart</a>
+<button id="retry" type="button">Reset again</button>
+</div>
 </main>
 <script>
-(async function(){
+async function resetAndOpen(){
   const status=document.getElementById('status');
+  const target='./?v=v13&ts='+Date.now();
   try{
+    status.textContent='Unregistering service workers...';
     if('serviceWorker' in navigator){
       const regs=await navigator.serviceWorker.getRegistrations();
       await Promise.all(regs.map(r=>r.unregister()));
     }
+    status.textContent='Deleting browser caches...';
     if('caches' in window){
       const keys=await caches.keys();
       await Promise.all(keys.map(k=>caches.delete(k)));
     }
-    status.textContent='Cache cleared. Opening updated chart...';
-    location.replace('./?v=granularity-v5&ts='+Date.now());
+    status.textContent='Cache cleared. Opening latest chart...';
+    document.getElementById('link').href=target;
+    setTimeout(()=>location.replace(target),600);
   }catch(e){
-    status.textContent='Cache reset could not complete automatically. Use the button below.';
-    document.getElementById('link').style.display='inline-block';
+    status.textContent='Automatic cache reset could not complete. Tap Open latest chart.';
+    document.getElementById('link').href=target;
   }
-})();
+}
+document.getElementById('retry').addEventListener('click',resetAndOpen);
+resetAndOpen();
 </script>
 </body>
 </html>
