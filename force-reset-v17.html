@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="cache-control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="pragma" content="no-cache">
+<meta http-equiv="expires" content="0">
+<title>Force Reset BTC Rainbow Chart</title>
+<style>
+body{margin:0;background:#070b12;color:#e5edf6;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;display:grid;place-items:center;min-height:100vh;padding:24px}main{max-width:620px;background:#0d111b;border:1px solid #263241;border-radius:16px;padding:22px;box-shadow:0 20px 70px rgba(0,0,0,.45)}h1{margin:0 0 8px;font-size:22px}p{color:#9aa7b7;line-height:1.5}.row{display:flex;gap:10px;flex-wrap:wrap}a,button{display:inline-block;border:1px solid #33536c;background:#132234;color:#eaf6ff;border-radius:12px;padding:10px 13px;font-weight:700;text-decoration:none;margin-top:8px}code{background:#090d15;border:1px solid #263241;border-radius:6px;padding:2px 5px;color:#d8e5f3}
+</style>
+</head>
+<body>
+<main>
+<h1>Force reset BTC Rainbow Chart</h1>
+<p id="status">Starting forced cache reset...</p>
+<p>Expected latest behavior: only <code>Selected date for band ranges</code> and an <code>Advanced settings</code> button are visible by default. Projection defaults to <code>Project 20 years</code>.</p>
+<div class="row">
+<a id="link" href="./?v=v17-force&ts=manual">Open latest chart</a>
+<button id="retry" type="button">Force reset again</button>
+</div>
+</main>
+<script>
+async function resetAndOpen(){
+  const status=document.getElementById('status');
+  const target='./?v=v17-force&ts='+Date.now();
+  try{
+    status.textContent='Unregistering all service workers...';
+    if('serviceWorker' in navigator){
+      const regs=await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map(r=>r.unregister()));
+    }
+    status.textContent='Deleting Cache Storage entries...';
+    if('caches' in window){
+      const keys=await caches.keys();
+      await Promise.all(keys.map(k=>caches.delete(k)));
+    }
+    status.textContent='Opening latest chart with cache-busting URL...';
+    document.getElementById('link').href=target;
+    setTimeout(()=>location.replace(target),800);
+  }catch(e){
+    status.textContent='Automatic reset failed. Tap Open latest chart.';
+    document.getElementById('link').href=target;
+  }
+}
+document.getElementById('retry').addEventListener('click',resetAndOpen);
+resetAndOpen();
+</script>
+</body>
+</html>
