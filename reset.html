@@ -12,16 +12,16 @@ body{margin:0;background:#070b12;color:#e5edf6;font-family:system-ui,-apple-syst
 <main>
 <h1>Reset BTC Rainbow Chart Cache</h1>
 <p id="status">Clearing old service worker and cached files...</p>
-<p>Latest expected version: <code>v14</code>. The updated chart should default to <code>-0.7 years</code> and Rainbow curve <code>1.88</code>.</p>
+<p>Latest expected version: <code>v15</code>. The updated chart should include a <code>Projection</code> dropdown with <code>Project 20 years</code>.</p>
 <div class="row">
-<a id="link" href="./?v=v14&ts=manual">Open latest chart</a>
+<a id="link" href="./?v=v15&ts=manual">Open latest chart</a>
 <button id="retry" type="button">Reset again</button>
 </div>
 </main>
 <script>
 async function resetAndOpen(){
   const status=document.getElementById('status');
-  const target='./?v=v14&ts='+Date.now();
+  const target='./?v=v15&ts='+Date.now();
   try{
     status.textContent='Unregistering service workers...';
     if('serviceWorker' in navigator){
