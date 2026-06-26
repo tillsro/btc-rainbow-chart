@@ -42,7 +42,7 @@ main{max-width:1320px;margin:0 auto;padding:14px}.head{display:flex;align-items:
     <div class="rangeWrap"><canvas id="mini"></canvas><div class="rangeInputs"><input id="startRange" type="range" min="0" max="1000" value="0"><input id="endRange" type="range" min="0" max="1000" value="1000"></div></div>
     <div class="controls">
       <div class="control"><label><span>Price granularity</span><b id="granularityLabel">Daily</b></label><input id="granularity" type="range" min="0" max="4" step="1" value="4"></div>
-      <div class="control"><label><span>Rainbow time shift</span><b id="shiftLabel">0.0 years</b></label><input id="shift" type="range" min="-8" max="8" step="0.1" value="0"></div>
+      <div class="control"><label><span>Rainbow time shift</span><b id="shiftLabel">-1.0 years</b></label><input id="shift" type="range" min="-8" max="8" step="0.1" value="-1"></div>
       <div class="control"><label><span>Preset range</span><b id="rangeLabel">Full history</b></label><select id="preset"><option value="all">Full history</option><option value="12y">Last 12 years</option><option value="8y">Last 8 years</option><option value="4y">Last 4 years</option><option value="1y">Last 1 year</option></select></div>
       <div class="control"><label><span>Selected date for band ranges</span><b id="dateLabel">—</b></label><input id="datePick" type="range" min="0" max="1" value="1"></div>
     </div>
@@ -62,42 +62,13 @@ const GRANULARITY=[
 ];
 const DAY=86400000;
 const el=id=>document.getElementById(id),chart=el('chart'),mini=el('mini'),ctx=chart.getContext('2d'),mctx=mini.getContext('2d'),tip=el('tip');
-const state={rawData:SNAPSHOT.map(([d,p])=>({t:new Date(d+'T00:00:00Z').getTime(),p,anchor:true})),data:[],source:'Interpolated snapshot',shift:0,hover:null,startPct:0,endPct:1,granularity:4,autoTried:false};
+const state={rawData:SNAPSHOT.map(([d,p])=>({t:new Date(d+'T00:00:00Z').getTime(),p,anchor:true})),data:[],source:'Interpolated snapshot',shift:-1,hover:null,startPct:0,endPct:1,granularity:4,autoTried:false};
 const fmtUSD=v=>v>=1e6?'$'+(v/1e6).toFixed(v<1e7?2:1)+'M':v>=1e3?'$'+(v/1e3).toFixed(v<1e5?2:0)+'K':v>=1?'$'+v.toFixed(v<10?2:0):'$'+v.toPrecision(2);
 const fullUSD=v=>v>=1000?'$'+Math.round(v).toLocaleString():v>=1?'$'+v.toFixed(2):'$'+v.toPrecision(2);
 const fmtDate=t=>new Date(t).toLocaleDateString(undefined,{year:'numeric',month:'short',day:'numeric'});
-function densifyAnchors(raw,stepDays){
-  const sorted=raw.slice().sort((a,b)=>a.t-b.t);
-  const out=[];
-  for(let i=0;i<sorted.length-1;i++){
-    const a=sorted[i],b=sorted[i+1],span=b.t-a.t,steps=Math.max(1,Math.round(span/(stepDays*DAY)));
-    for(let j=0;j<steps;j++){
-      const f=j/steps;
-      const p=Math.exp(Math.log(a.p)+(Math.log(b.p)-Math.log(a.p))*f);
-      out.push({t:a.t+span*f,p,interpolated:true});
-    }
-  }
-  out.push({...sorted[sorted.length-1],interpolated:false});
-  return out;
-}
-function resample(raw,stepDays){
-  const sorted=raw.slice().sort((a,b)=>a.t-b.t);
-  const out=[];
-  let next=-Infinity;
-  for(const d of sorted){
-    if(d.t>=next||out.length===0){out.push(d);next=d.t+stepDays*DAY}
-  }
-  const last=sorted[sorted.length-1];
-  if(out[out.length-1].t!==last.t)out.push(last);
-  return out;
-}
-function rebuildData(){
-  const g=GRANULARITY[state.granularity];
-  const isSparseSnapshot=state.rawData.length<200;
-  state.data=isSparseSnapshot?densifyAnchors(state.rawData,g.days):resample(state.rawData,g.days);
-  if(+el('datePick').value>=state.data.length)el('datePick').value=state.data.length-1;
-  el('datePick').max=Math.max(1,state.data.length-1);
-}
+function densifyAnchors(raw,stepDays){const sorted=raw.slice().sort((a,b)=>a.t-b.t);const out=[];for(let i=0;i<sorted.length-1;i++){const a=sorted[i],b=sorted[i+1],span=b.t-a.t,steps=Math.max(1,Math.round(span/(stepDays*DAY)));for(let j=0;j<steps;j++){const f=j/steps;const p=Math.exp(Math.log(a.p)+(Math.log(b.p)-Math.log(a.p))*f);out.push({t:a.t+span*f,p,interpolated:true});}}out.push({...sorted[sorted.length-1],interpolated:false});return out;}
+function resample(raw,stepDays){const sorted=raw.slice().sort((a,b)=>a.t-b.t);const out=[];let next=-Infinity;for(const d of sorted){if(d.t>=next||out.length===0){out.push(d);next=d.t+stepDays*DAY}}const last=sorted[sorted.length-1];if(out[out.length-1].t!==last.t)out.push(last);return out;}
+function rebuildData(){const g=GRANULARITY[state.granularity];const isSparseSnapshot=state.rawData.length<200;state.data=isSparseSnapshot?densifyAnchors(state.rawData,g.days):resample(state.rawData,g.days);if(+el('datePick').value>=state.data.length)el('datePick').value=state.data.length-1;el('datePick').max=Math.max(1,state.data.length-1);}
 function rainbowBase(t){const genesis=Date.UTC(2009,0,3);const shifted=t+state.shift*365.25*DAY;const d=Math.max(60,(shifted-genesis)/DAY);return 5.8*Math.pow(10,-12.27+1.91*Math.log(d));}
 function bandFor(t,p){const base=rainbowBase(t);for(const b of BANDS){if(p>=base*b[1]&&p<base*b[2])return b[0]}return p>=base*BANDS[0][2]?'Above rainbow':'Below rainbow'}
 function dataBounds(){state.data.sort((a,b)=>a.t-b.t);return{minT:state.data[0].t,maxT:state.data[state.data.length-1].t}}
@@ -105,13 +76,7 @@ function viewBounds(){const d=dataBounds(),span=d.maxT-d.minT;let a=d.minT+span*
 function yBounds(vb){let minP=Infinity,maxP=0;state.data.forEach(d=>{if(d.t>=vb.minT&&d.t<=vb.maxT){minP=Math.min(minP,d.p);maxP=Math.max(maxP,d.p)}});for(let i=0;i<=160;i++){let t=vb.minT+(vb.maxT-vb.minT)*i/160,base=rainbowBase(t);minP=Math.min(minP,base*BANDS[BANDS.length-1][1]);maxP=Math.max(maxP,base*BANDS[0][2])}return{minL:Math.min(-2,Math.floor(Math.log10(minP))-.05),maxL:Math.max(7,Math.ceil(Math.log10(maxP))+.05)}}
 function resizeCanvas(c){const r=c.getBoundingClientRect(),dpr=window.devicePixelRatio||1;c.width=Math.max(320,Math.round(r.width*dpr));c.height=Math.max(240,Math.round(r.height*dpr));return{w:r.width,h:r.height,dpr}}
 function paintBands(c,x,y,vb,alpha){for(let bi=BANDS.length-1;bi>=0;bi--){const band=BANDS[bi];c.beginPath();let first=true;for(let i=0;i<=220;i++){let t=vb.minT+(vb.maxT-vb.minT)*i/220,px=x(t),py=y(rainbowBase(t)*band[2]);if(first){c.moveTo(px,py);first=false}else c.lineTo(px,py)}for(let i=220;i>=0;i--){let t=vb.minT+(vb.maxT-vb.minT)*i/220;c.lineTo(x(t),y(rainbowBase(t)*band[1]))}c.closePath();c.globalAlpha=alpha;c.fillStyle=band[3];c.fill();c.globalAlpha=1}}
-function draw(){const r=resizeCanvas(chart),dpr=r.dpr,w=r.w,h=r.h;ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,w,h);ctx.fillStyle='#090d15';ctx.fillRect(0,0,w,h);const margin={l:66,r:18,t:10,b:34},vb=viewBounds(),yb=yBounds(vb),X=t=>margin.l+(t-vb.minT)/(vb.maxT-vb.minT)*(w-margin.l-margin.r),Y=p=>margin.t+(yb.maxL-Math.log10(Math.max(p,1e-8)))/(yb.maxL-yb.minL)*(h-margin.t-margin.b);paintBands(ctx,X,Y,vb,.92);
-ctx.strokeStyle='rgba(255,255,255,.16)';ctx.fillStyle='rgba(229,237,246,.75)';ctx.font='12px system-ui';ctx.lineWidth=1;for(let pow=Math.ceil(yb.minL);pow<=Math.floor(yb.maxL);pow++){let val=Math.pow(10,pow),yy=Y(val);ctx.beginPath();ctx.moveTo(margin.l,yy);ctx.lineTo(w-margin.r,yy);ctx.stroke();ctx.fillText(fmtUSD(val),8,yy+4)}
-let years=(new Date(vb.maxT).getUTCFullYear()-new Date(vb.minT).getUTCFullYear());let step=years>12?2:years>5?1:0;ctx.fillStyle='rgba(229,237,246,.72)';if(step){for(let y=new Date(vb.minT).getUTCFullYear();y<=new Date(vb.maxT).getUTCFullYear();y+=step){let t=Date.UTC(y,0,1);if(t<vb.minT||t>vb.maxT)continue;let xx=X(t);ctx.strokeStyle='rgba(255,255,255,.10)';ctx.beginPath();ctx.moveTo(xx,margin.t);ctx.lineTo(xx,h-margin.b);ctx.stroke();ctx.fillText(String(y),xx-12,h-10)}}else{for(let i=0;i<7;i++){let t=vb.minT+(vb.maxT-vb.minT)*i/6,xx=X(t);ctx.fillText(new Date(t).toLocaleDateString(undefined,{month:'short',day:'numeric'}),xx-20,h-10)}}
-ctx.strokeStyle='#f8fafc';ctx.lineWidth=2.1;ctx.beginPath();let started=false;state.data.forEach(d=>{if(d.t<vb.minT||d.t>vb.maxT)return;let xx=X(d.t),yy=Y(d.p);if(!started){ctx.moveTo(xx,yy);started=true}else ctx.lineTo(xx,yy)});ctx.stroke();
-if(state.rawData.length<200){ctx.strokeStyle='rgba(255,255,255,.38)';ctx.lineWidth=1;state.rawData.forEach(d=>{if(d.t<vb.minT||d.t>vb.maxT)return;ctx.beginPath();ctx.arc(X(d.t),Y(d.p),2.4,0,Math.PI*2);ctx.stroke()})}
-if(state.hover){let n=nearest(state.hover.t);if(n.t>=vb.minT&&n.t<=vb.maxT){ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(X(n.t),Y(n.p),3.8,0,Math.PI*2);ctx.fill();ctx.strokeStyle='rgba(255,255,255,.4)';ctx.beginPath();ctx.moveTo(X(n.t),margin.t);ctx.lineTo(X(n.t),h-margin.b);ctx.stroke()}}
-drawMini()}
+function draw(){const r=resizeCanvas(chart),dpr=r.dpr,w=r.w,h=r.h;ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,w,h);ctx.fillStyle='#090d15';ctx.fillRect(0,0,w,h);const margin={l:66,r:18,t:10,b:34},vb=viewBounds(),yb=yBounds(vb),X=t=>margin.l+(t-vb.minT)/(vb.maxT-vb.minT)*(w-margin.l-margin.r),Y=p=>margin.t+(yb.maxL-Math.log10(Math.max(p,1e-8)))/(yb.maxL-yb.minL)*(h-margin.t-margin.b);paintBands(ctx,X,Y,vb,.92);ctx.strokeStyle='rgba(255,255,255,.16)';ctx.fillStyle='rgba(229,237,246,.75)';ctx.font='12px system-ui';ctx.lineWidth=1;for(let pow=Math.ceil(yb.minL);pow<=Math.floor(yb.maxL);pow++){let val=Math.pow(10,pow),yy=Y(val);ctx.beginPath();ctx.moveTo(margin.l,yy);ctx.lineTo(w-margin.r,yy);ctx.stroke();ctx.fillText(fmtUSD(val),8,yy+4)}let years=(new Date(vb.maxT).getUTCFullYear()-new Date(vb.minT).getUTCFullYear());let step=years>12?2:years>5?1:0;ctx.fillStyle='rgba(229,237,246,.72)';if(step){for(let y=new Date(vb.minT).getUTCFullYear();y<=new Date(vb.maxT).getUTCFullYear();y+=step){let t=Date.UTC(y,0,1);if(t<vb.minT||t>vb.maxT)continue;let xx=X(t);ctx.strokeStyle='rgba(255,255,255,.10)';ctx.beginPath();ctx.moveTo(xx,margin.t);ctx.lineTo(xx,h-margin.b);ctx.stroke();ctx.fillText(String(y),xx-12,h-10)}}else{for(let i=0;i<7;i++){let t=vb.minT+(vb.maxT-vb.minT)*i/6,xx=X(t);ctx.fillText(new Date(t).toLocaleDateString(undefined,{month:'short',day:'numeric'}),xx-20,h-10)}}ctx.strokeStyle='#f8fafc';ctx.lineWidth=2.1;ctx.beginPath();let started=false;state.data.forEach(d=>{if(d.t<vb.minT||d.t>vb.maxT)return;let xx=X(d.t),yy=Y(d.p);if(!started){ctx.moveTo(xx,yy);started=true}else ctx.lineTo(xx,yy)});ctx.stroke();if(state.rawData.length<200){ctx.strokeStyle='rgba(255,255,255,.38)';ctx.lineWidth=1;state.rawData.forEach(d=>{if(d.t<vb.minT||d.t>vb.maxT)return;ctx.beginPath();ctx.arc(X(d.t),Y(d.p),2.4,0,Math.PI*2);ctx.stroke()})}if(state.hover){let n=nearest(state.hover.t);if(n.t>=vb.minT&&n.t<=vb.maxT){ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(X(n.t),Y(n.p),3.8,0,Math.PI*2);ctx.fill();ctx.strokeStyle='rgba(255,255,255,.4)';ctx.beginPath();ctx.moveTo(X(n.t),margin.t);ctx.lineTo(X(n.t),h-margin.b);ctx.stroke()}}drawMini()}
 function drawMini(){const r=resizeCanvas(mini),dpr=r.dpr,w=r.w,h=r.h;mctx.setTransform(dpr,0,0,dpr,0,0);mctx.clearRect(0,0,w,h);mctx.fillStyle='#080d15';mctx.fillRect(0,0,w,h);const db=dataBounds(),minL=-2,maxL=7,X=t=>(t-db.minT)/(db.maxT-db.minT)*w,Y=p=>(maxL-Math.log10(Math.max(p,1e-8)))/(maxL-minL)*h;mctx.strokeStyle='rgba(255,255,255,.65)';mctx.lineWidth=1;mctx.beginPath();state.data.forEach((d,i)=>{let x=X(d.t),y=Y(d.p);i?mctx.lineTo(x,y):mctx.moveTo(x,y)});mctx.stroke();let sx=w*state.startPct,ex=w*state.endPct;mctx.fillStyle='rgba(90,183,255,.16)';mctx.fillRect(sx,0,ex-sx,h);mctx.strokeStyle='rgba(90,183,255,.8)';mctx.strokeRect(sx+.5,.5,Math.max(1,ex-sx-1),h-1)}
 function nearest(t){return state.data.reduce((a,b)=>Math.abs(b.t-t)<Math.abs(a.t-t)?b:a,state.data[0])}
 function renderLegend(){const html=['<span class="key"><span class="sw priceSw"></span>BTC Price</span>'].concat(BANDS.map(b=>`<span class="key"><span class="sw" style="background:${b[3]}"></span>${b[0]}</span>`)).join('');el('legend').innerHTML=html+`<span class="status" id="srcStatus">${state.source} · ${state.data.length.toLocaleString()} plotted points</span>`}
