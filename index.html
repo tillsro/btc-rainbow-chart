@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>BTC Rainbow Chart</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+<meta name="theme-color" content="#0b0f19">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="BTC Rainbow">
+<style>
+:root{color-scheme:dark;--bg:#0b0f19;--panel:#121826;--panel2:#0f1522;--text:#f4f7fb;--muted:#9aa7b7;--border:#263244;--accent:#7dd3fc}*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:radial-gradient(circle at top,#182235 0,#0b0f19 48%,#070a11 100%);color:var(--text)}main{max-width:1180px;margin:0 auto;padding:16px}.top{display:flex;gap:12px;justify-content:space-between;align-items:flex-start;flex-wrap:wrap}h1{font-size:clamp(24px,4vw,42px);margin:4px 0}.sub{color:var(--muted);margin:0 0 12px}.card{background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.03));border:1px solid var(--border);border-radius:18px;box-shadow:0 18px 60px rgba(0,0,0,.35);padding:14px;margin:12px 0}.stats{display:grid;grid-template-columns:repeat(4,minmax(140px,1fr));gap:10px}.stat{background:var(--panel2);border:1px solid var(--border);border-radius:14px;padding:12px}.stat b{display:block;font-size:22px}.stat span{color:var(--muted);font-size:13px}.chartwrap{position:relative;height:62vh;min-height:430px}.chartwrap canvas{width:100%;height:100%;display:block;border-radius:14px;background:#08101c}.tooltip{position:absolute;display:none;pointer-events:none;transform:translate(12px,-50%);background:rgba(5,10,18,.94);border:1px solid #334155;border-radius:10px;padding:8px 10px;font-size:13px;white-space:nowrap;box-shadow:0 12px 30px rgba(0,0,0,.45)}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.control label{display:flex;justify-content:space-between;gap:10px;color:var(--muted);font-size:14px;margin-bottom:7px}.control input{width:100%;accent-color:var(--accent)}button{appearance:none;border:1px solid #33536c;background:#132234;color:#eaf6ff;border-radius:12px;padding:10px 13px;font-weight:700}button:active{transform:translateY(1px)}.progress{height:10px;background:#0b1320;border:1px solid var(--border);border-radius:999px;overflow:hidden}.bar{height:100%;width:100%;background:linear-gradient(90deg,#22c55e,#7dd3fc);transition:width .2s}.steps{font-size:13px;color:var(--muted);line-height:1.5;margin-top:8px;white-space:pre-wrap}.tablewrap{overflow:auto}table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;border-bottom:1px solid var(--border);padding:10px}th{color:var(--muted);font-weight:600}.sw{display:inline-block;width:14px;height:14px;border-radius:4px;margin-right:8px;vertical-align:-2px}.note{color:var(--muted);font-size:13px;line-height:1.45}@media(max-width:760px){main{padding:10px}.stats,.grid{grid-template-columns:1fr}.chartwrap{height:55vh;min-height:360px}th,td{padding:8px;font-size:13px}}
+</style>
+</head>
+<body>
+<main>
+  <div class="top">
+    <div><h1>BTC Rainbow Chart</h1><p class="sub">Loads instantly from embedded snapshot data. Press refresh for live daily history.</p></div>
+    <button id="refresh">Refresh live data</button>
+  </div>
+  <section class="stats">
+    <div class="stat"><span>Latest BTC</span><b id="latest">—</b></div>
+    <div class="stat"><span>Latest date</span><b id="latestDate">—</b></div>
+    <div class="stat"><span>Current band</span><b id="bandNow">—</b></div>
+    <div class="stat"><span>Source</span><b id="source">Snapshot</b></div>
+  </section>
+  <section class="card chartwrap"><canvas id="chart"></canvas><div class="tooltip" id="tip"></div></section>
+  <section class="grid">
+    <div class="card">
+      <div class="control"><label><span>Rainbow time shift</span><b id="shiftLabel">0.0 years</b></label><input id="shift" type="range" min="-8" max="8" step="0.1" value="0"></div>
+      <div class="control" style="margin-top:16px"><label><span>Band table date</span><b id="dateLabel">—</b></label><input id="datePick" type="range" min="0" max="1" step="1" value="1"></div>
+      <div style="margin-top:16px"><div class="progress"><div class="bar" id="bar"></div></div><div class="steps" id="steps">Chart ready from embedded snapshot.</div></div>
+    </div>
+    <div class="card tablewrap"><table><thead><tr><th>Band</th><th>Price range on selected date</th></tr></thead><tbody id="bands"></tbody></table></div>
+  </section>
+  <p class="note">This is a visual/log-regression rainbow model, not investment advice. The live refresh uses public endpoints when the browser allows them. The embedded snapshot keeps the app usable if APIs are blocked.</p>
+</main>
+<script>
+const SNAPSHOT=[['2010-07-18',0.09],['2010-12-31',0.3],['2011-06-08',29.6],['2011-12-31',4.7],['2012-12-31',13.5],['2013-04-10',165],['2013-12-04',1151],['2014-12-31',320],['2015-12-31',430],['2016-12-31',963],['2017-06-30',2480],['2017-12-17',19100],['2018-12-15',3190],['2019-06-26',12800],['2019-12-31',7190],['2020-12-31',28950],['2021-04-14',63500],['2021-11-10',69000],['2022-11-21',15760],['2023-12-31',42270],['2024-03-14',73750],['2024-12-31',93500],['2025-06-30',62000],['2025-12-31',76000],['2026-06-25',59849]];
+const COLORS=['#7f1d1d','#dc2626','#f97316','#facc15','#84cc16','#22c55e','#14b8a6','#38bdf8','#8b5cf6'];
+const BANDS=[['Maximum bubble',12.5,20],['Sell. Seriously.',7.5,12.5],['FOMO intensifies',4.5,7.5],['Is this a bubble?',2.7,4.5],['HODL',1.6,2.7],['Still cheap',0.95,1.6],['Accumulate',0.55,0.95],['BUY!',0.3,0.55],['Fire sale',0.15,0.3]];
+const state={data:SNAPSHOT.map(([d,p])=>({t:new Date(d+'T00:00:00Z').getTime(),p})),shift:0,hover:null,source:'Snapshot'};
+const el=id=>document.getElementById(id),canvas=el('chart'),ctx=canvas.getContext('2d'),tip=el('tip');
+const fmtUSD=v=>v>=1000?'$'+Math.round(v).toLocaleString():v>=1?'$'+v.toFixed(2):'$'+v.toPrecision(2);
+const fmtDate=t=>new Date(t).toLocaleDateString(undefined,{year:'numeric',month:'short',day:'numeric'});
+function model(t){const genesis=Date.UTC(2009,0,3);const shifted=t+state.shift*365.25*864e5;const d=Math.max(60,(shifted-genesis)/864e5);return Math.pow(10,-12.27+1.91*Math.log(d));}
+function bandAt(t,p){const b=model(t);for(const [name,lo,hi] of BANDS){if(p>=b*lo&&p<b*hi)return name}return p>=b*20?'Above rainbow':'Below rainbow'}
+function resize(){const r=canvas.getBoundingClientRect(),dpr=devicePixelRatio||1;canvas.width=Math.max(300,r.width*dpr);canvas.height=Math.max(300,r.height*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);draw()}
+function bounds(){const padY=.18,ts=state.data.map(x=>x.t),ps=state.data.map(x=>x.p);let minT=Math.min(...ts),maxT=Math.max(...ts),minP=Math.min(...ps),maxP=Math.max(...ps);for(let t=minT;t<=maxT;t+=(maxT-minT)/80){let b=model(t);minP=Math.min(minP,b*.15);maxP=Math.max(maxP,b*20)}return{minT,maxT,minL:Math.log10(minP)-padY,maxL:Math.log10(maxP)+padY}}
+function draw(){const w=canvas.clientWidth,h=canvas.clientHeight;if(!w||!h)return;ctx.clearRect(0,0,w,h);const m={l:58,r:16,t:18,b:34},b=bounds(),X=t=>m.l+(t-b.minT)/(b.maxT-b.minT)*(w-m.l-m.r),Y=p=>m.t+(b.maxL-Math.log10(Math.max(p,.00001)))/(b.maxL-b.minL)*(h-m.t-m.b);ctx.fillStyle='#08101c';ctx.fillRect(0,0,w,h);ctx.strokeStyle='rgba(255,255,255,.13)';ctx.fillStyle='rgba(244,247,251,.72)';ctx.font='12px system-ui';for(let i=Math.ceil(b.minL);i<=Math.floor(b.maxL);i++){let y=Y(Math.pow(10,i));ctx.beginPath();ctx.moveTo(m.l,y);ctx.lineTo(w-m.r,y);ctx.stroke();ctx.fillText(fmtUSD(Math.pow(10,i)),8,y+4)}for(const [idx,band] of BANDS.slice().reverse().entries()){const color=COLORS[idx];ctx.beginPath();let first=true;for(let i=0;i<=160;i++){let t=b.minT+(b.maxT-b.minT)*i/160,x=X(t),y=Y(model(t)*band[2]);if(first){ctx.moveTo(x,y);first=false}else ctx.lineTo(x,y)}for(let i=160;i>=0;i--){let t=b.minT+(b.maxT-b.minT)*i/160;ctx.lineTo(X(t),Y(model(t)*band[1]))}ctx.closePath();ctx.fillStyle=color+'70';ctx.fill()}ctx.strokeStyle='rgba(255,255,255,.85)';ctx.lineWidth=2.4;ctx.beginPath();state.data.forEach((d,i)=>{let x=X(d.t),y=Y(d.p);i?ctx.lineTo(x,y):ctx.moveTo(x,y)});ctx.stroke();ctx.lineWidth=1;ctx.fillStyle='#fff';for(let y=new Date(b.minT).getUTCFullYear();y<=new Date(b.maxT).getUTCFullYear();y+=2){let t=Date.UTC(y,0,1),x=X(t);ctx.strokeStyle='rgba(255,255,255,.08)';ctx.beginPath();ctx.moveTo(x,m.t);ctx.lineTo(x,h-m.b);ctx.stroke();ctx.fillStyle='rgba(244,247,251,.65)';ctx.fillText(String(y),x-12,h-10)}if(state.hover){let near=nearest(state.hover.t);ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(X(near.t),Y(near.p),4,0,7);ctx.fill()} }
+function nearest(t){return state.data.reduce((a,b)=>Math.abs(b.t-t)<Math.abs(a.t-t)?b:a,state.data[0])}
+function update(){state.data.sort((a,b)=>a.t-b.t);let last=state.data[state.data.length-1];el('latest').textContent=fmtUSD(last.p);el('latestDate').textContent=fmtDate(last.t);el('bandNow').textContent=bandAt(last.t,last.p);el('source').textContent=state.source;el('shiftLabel').textContent=(state.shift>0?'+':'')+state.shift.toFixed(1)+' years';el('datePick').max=state.data.length-1;if(+el('datePick').value>=state.data.length)el('datePick').value=state.data.length-1;updateTable();draw()}
+function updateTable(){let d=state.data[+el('datePick').value]||state.data[state.data.length-1];el('dateLabel').textContent=fmtDate(d.t);let base=model(d.t);el('bands').innerHTML=BANDS.map((b,i)=>`<tr><td><span class="sw" style="background:${COLORS[8-i]}"></span>${b[0]}</td><td>${fmtUSD(base*b[1])} – ${fmtUSD(base*b[2])}</td></tr>`).join('')}
+canvas.addEventListener('mousemove',e=>{const r=canvas.getBoundingClientRect(),b=bounds(),x=e.clientX-r.left,t=b.minT+(x-58)/(r.width-74)*(b.maxT-b.minT);let n=nearest(t);state.hover={t:n.t};tip.style.display='block';tip.style.left=e.clientX-r.left+'px';tip.style.top=e.clientY-r.top+'px';tip.innerHTML=`<b>${fmtDate(n.t)}</b><br>BTC: ${fmtUSD(n.p)}<br>Band: ${bandAt(n.t,n.p)}`;draw()});
+canvas.addEventListener('mouseleave',()=>{state.hover=null;tip.style.display='none';draw()});
+el('shift').addEventListener('input',e=>{state.shift=+e.target.value;update()});el('datePick').addEventListener('input',updateTable);window.addEventListener('resize',resize);
+function step(p,msg){el('bar').style.width=p+'%';el('steps').textContent=msg}
+async function timedFetch(url,ms=12000){const c=new AbortController();const id=setTimeout(()=>c.abort(),ms);try{return await fetch(url,{signal:c.signal,cache:'no-store'})}finally{clearTimeout(id)}}
+async function refresh(){el('refresh').disabled=true;step(8,'Starting live retrieval...');let errors=[];try{step(20,'Trying CryptoCompare full daily history...');let r=await timedFetch('https://min-api.cryptocompare.com/data/v2/histoday?fsym=BTC&tsym=USD&allData=true');if(r.ok){let j=await r.json();let arr=j?.Data?.Data?.filter(x=>x.close>0).map(x=>({t:x.time*1000,p:x.close}));if(arr&&arr.length>1000){state.data=arr;state.source='CryptoCompare';step(100,'Loaded CryptoCompare daily history.');return update()}}errors.push('CryptoCompare unavailable');step(45,'Trying CoinGecko market chart...');r=await timedFetch('https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=usd&days=max&interval=daily');if(r.ok){let j=await r.json();let arr=j?.prices?.filter(x=>x[1]>0).map(x=>({t:x[0],p:x[1]}));if(arr&&arr.length>1000){state.data=arr;state.source='CoinGecko';step(100,'Loaded CoinGecko daily history.');return update()}}errors.push('CoinGecko unavailable');step(70,'Trying Binance recent daily history...');r=await timedFetch('https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1d&limit=1000');if(r.ok){let j=await r.json();let arr=j.filter(x=>+x[4]>0).map(x=>({t:x[0],p:+x[4]}));if(arr&&arr.length>100){state.data=arr;state.source='Binance recent';step(100,'Loaded Binance recent daily history.');return update()}}errors.push('Binance unavailable');step(100,'Live APIs blocked/unavailable. Using embedded snapshot. '+errors.join('; '));}catch(e){step(100,'Live retrieval failed. Using embedded snapshot. '+(e.message||e));}finally{el('refresh').disabled=false;update()}}
+el('refresh').addEventListener('click',refresh);if('serviceWorker'in navigator){navigator.serviceWorker.register('service-worker.js').catch(()=>{})}el('datePick').value=state.data.length-1;step(100,'Chart ready from embedded snapshot. Press Refresh live data for daily history.');resize();update();
+</script>
+</body>
+</html>
