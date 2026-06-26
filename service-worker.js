@@ -1,4 +1,4 @@
-const CACHE_NAME = "btc-rainbow-pwa-v16";
+const CACHE_NAME = "btc-rainbow-pwa-v17";
 const APP_SHELL = ["./", "./index.html", "./manifest.webmanifest", "./assets/icon.svg"];
 
 self.addEventListener("install", event => {
